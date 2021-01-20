@@ -1,10 +1,11 @@
 # Импорт pygame
+
 import pygame
 import time
 import sys
 import random
 # Импорт клавиш
-from pygame.locals import(K_UP, K_DOWN, K_LEFT, K_RIGHT, K_SPACE, K_ESCAPE, MOUSEBUTTONDOWN)
+from pygame.locals import(K_UP, K_DOWN, K_LEFT, K_RIGHT, K_SPACE, K_ESCAPE, K_RETURN, MOUSEBUTTONDOWN)
 
 # Инициализация музыки
 pygame.mixer.init()
@@ -14,6 +15,50 @@ sound_hit = pygame.mixer.Sound('D:\Projects\.vscode\Music\kboom.wav')
 # Инициализация шрифтов
 pygame.font.init()
 Starfont = pygame.font.Font('D:\Projects\.vscode\Fonts\SF Distant Galaxy Alternate.ttf', 38)
+
+
+class TextInputBox(pygame.sprite.Sprite):
+    def __init__(self, x, y, w, font):
+        super().__init__()
+        self.color = (255, 0, 0)
+        self.backcolor = None
+        self.pos = (x, y) 
+        self.width = w
+        self.font = font
+        self.active = False
+        self.text = ""
+        self.render_text()
+    
+
+    def render_text(self):
+        t_surf = self.font.render(self.text, True, self.color, self.backcolor)
+        self.image = pygame.Surface((max(self.width, t_surf.get_width()+10), t_surf.get_height()+10), pygame.SRCALPHA)
+        if self.backcolor:
+            self.image.fill(self.backcolor)
+        self.image.blit(t_surf, (5, 5))
+        pygame.draw.rect(self.image, self.color, self.image.get_rect().inflate(-2, -2), 2)
+        self.rect = self.image.get_rect(topleft = self.pos)
+
+    def update(self, event_list):
+        for event in event_list:
+            if event.type == pygame.MOUSEBUTTONDOWN and not self.active:
+                self.active = self.rect.collidepoint(event.pos)
+            if event.type == pygame.KEYDOWN and self.active:
+                if event.key == pygame.K_RETURN:
+                    self.active = False
+                elif event.key == pygame.K_BACKSPACE:
+                    self.text = self.text[:-1]
+                else:
+                    self.text += event.unicode
+                self.render_text()
+                
+    def getText(self):
+        return self.text
+    
+
+text_input_box = TextInputBox(-1, 432, 300, Starfont)
+group = pygame.sprite.Group(text_input_box)
+
 
 # Класс Sprite () метод render
 class Sprite:
@@ -147,19 +192,29 @@ Zombie_Space = [right_freeZ, left_freeZ, up_freeZ, down_freeZ]
 score1 = 0
 i = 20
 t = 1
-ot = int(input())
+input_active = True
+inp_text = False
+ot = TextInputBox(0, 0, 0, Starfont)
 
 # будет запущенно пока не закроем окно
 running = True
 if running:
     load_menu() # pygame.mixer.music.play(-1)
 while running:
+    event_list = pygame.event.get()
     # Щелкнули ли мы закрыть окно?
-    for event in pygame.event.get():
+    for event in event_list:
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.USEREVENT:
+            if event.user_type == pygame_gui.UI_TEXT_ENTRY_FINISHED:
+                if event.ui_element == text_input:
+                    entered_text = text
+                    
         
         if event.type == pygame.KEYDOWN:
+            if event.key == K_RETURN:
+                inp_text = True
             if event.key == K_ESCAPE:
                 load_menu()
             if event.key == K_LEFT:
@@ -329,42 +384,52 @@ while running:
         you_win()
 
     while t == 1:
-        F = int(random.randint(1, 12))
-        S = int(random.randint(1, 12))
-        Z = int(random.randint(1, 4)) # 1 = +, 2 = -, 3 = *, 4 = /
-        if F < S:
-            pass
-        else:
-            t = t - 1
-
-    if Z == 1:
-        SUMM = F + S
-        C = '+'
-
-    elif Z == 2:
-        SUMM = F - S
-        C = '-'
-    
-    elif Z == 3:
-        SUMM = F * S
-        C = '*'
-    
-    elif Z == 4:
-        SUMM = F / S
-        C = '/'
+        first = int(random.randint(1, 12)) 
+        second = int(random.randint(1, 12))
+        znak = int(random.randint(1, 4)) # 1 = +, 2 = -, 3 = *, 4 = /
+        print(first, second, znak)
+        if znak == 1:
+            SUMM = first + second
+            C = '+'
+        elif znak == 2:
+            SUMM = first - second
+            if SUMM < 0:
+                continue
+            C = '-'
+        elif znak == 3:
+            SUMM = first * second
+            C = 'x'
+        elif znak == 4:
+            if first % second != 0:
+                continue
+            else:
+                SUMM = first / second
+                C = '/'
+        t -= 1
+        
 
     text_C = Starfont.render(C, 1, [255, 255, 255])
     screen.blit(text_C, [zombie.x + 20, zombie.y - 40])
-    text_F = Starfont.render(str(F), 1, [255, 255, 255])
+    text_F = Starfont.render(str(first), 1, [255, 255, 255])
     screen.blit(text_F, [zombie.x - 20, zombie.y - 40])
-    text_S = Starfont.render(str(S), 1, [255, 255, 255])
+    text_S = Starfont.render(str(second), 1, [255, 255, 255])
     screen.blit(text_S, [zombie.x + 50, zombie.y - 40])
-    
-    if SUMM == ot:
-        score1 += 1
-        t = 1
-    else:
-        ot = int(input())
+
+    if inp_text == True:
+        ot = TextInputBox.getText()
+        if int(ot) == SUMM:
+            score1 += 1
+            t = 1
+            inp_text = False
+        else:
+            t = 1
+            print('Упс, неверный ответ')
+            inp_text = False
+            if score1 == 0:
+                pass
+            else:
+                score1 -= 1
+
 
 
         
@@ -393,7 +458,8 @@ while running:
 
     window.blit(screen, [0, 0])
     window.blit(score, [0, 0])
-
+    group.update(event_list)
+    group.draw(window)
 
 
     # для того, чтобы все обновления стали видимыми
