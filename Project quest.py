@@ -1,5 +1,3 @@
-# Импорт pygame
-
 import pygame
 import time
 import sys
@@ -28,7 +26,7 @@ class TextInputBox(pygame.sprite.Sprite):
         self.active = False
         self.text = ""
         self.render_text()
-    
+        self.right_answer = False
 
     def render_text(self):
         t_surf = self.font.render(self.text, True, self.color, self.backcolor)
@@ -39,21 +37,24 @@ class TextInputBox(pygame.sprite.Sprite):
         pygame.draw.rect(self.image, self.color, self.image.get_rect().inflate(-2, -2), 2)
         self.rect = self.image.get_rect(topleft = self.pos)
 
-    def update(self, event_list):
+    def update(self, event_list, ot):
         for event in event_list:
             if event.type == pygame.MOUSEBUTTONDOWN and not self.active:
                 self.active = self.rect.collidepoint(event.pos)
             if event.type == pygame.KEYDOWN and self.active:
                 if event.key == pygame.K_RETURN:
                     self.active = False
+                    print(self.text)
+                    if str(ot) == self.text:
+                        self.right_answer = True
                 elif event.key == pygame.K_BACKSPACE:
                     self.text = self.text[:-1]
                 else:
                     self.text += event.unicode
                 self.render_text()
                 
-    def getText(self):
-        return self.text
+    def checkAnswer(self):
+        return self.right_answer
     
 
 text_input_box = TextInputBox(-1, 432, 300, Starfont)
@@ -192,9 +193,7 @@ Zombie_Space = [right_freeZ, left_freeZ, up_freeZ, down_freeZ]
 score1 = 0
 i = 20
 t = 1
-input_active = True
 inp_text = False
-ot = TextInputBox(0, 0, 0, Starfont)
 
 # будет запущенно пока не закроем окно
 running = True
@@ -415,21 +414,20 @@ while running:
     text_S = Starfont.render(str(second), 1, [255, 255, 255])
     screen.blit(text_S, [zombie.x + 50, zombie.y - 40])
 
+    group.update(event_list, 10)
     if inp_text == True:
-        ot = TextInputBox.getText()
-        if int(ot) == SUMM:
+        if text_input_box.checkAnswer():
             score1 += 1
             t = 1
             inp_text = False
-        else:
-            t = 1
-            print('Упс, неверный ответ')
-            inp_text = False
-            if score1 == 0:
-                pass
-            else:
-                score1 -= 1
-
+        # else:
+        #     t = 1
+        #     print('Упс, неверный ответ')
+        #     inp_text = False
+        #     if score1 == 0:
+        #         pass
+        #     else:
+        #         score1 -= 1
 
 
         
@@ -458,7 +456,6 @@ while running:
 
     window.blit(screen, [0, 0])
     window.blit(score, [0, 0])
-    group.update(event_list)
     group.draw(window)
 
 
